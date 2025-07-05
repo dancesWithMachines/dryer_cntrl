@@ -5,6 +5,7 @@
 #define VERSION "0.0.0"
 #define DEBUG true
 
+/* Available modes */
 enum Mode {
   MODE_GET,
   MODE_SET,
@@ -12,6 +13,7 @@ enum Mode {
   MODE_UNKNOWN,
 };
 
+/* Available params */
 enum Param {
   PARAM_TEMP,
   PARAM_TIME,
@@ -29,18 +31,21 @@ const uint8_t pinB = 3; // Encoder B
 const uint8_t pinSW = 4; // Switch
 
 /* Max values */
-const uint8_t minTemp = 45;
-const uint8_t maxTemp = 65;
-const uint8_t maxHours = 24;
+const uint8_t minTemp = 45; // Degrees Celsius
+const uint8_t maxTemp = 65; // Degrees Celsius
+const uint8_t maxTime = 24; // Hours
 
 /* Global params */
 static bool statusRunning = false;
 static uint8_t tempToSet = 0;
-static uint8_t hoursToSet = 0;
+static uint8_t timeToSet = 0;
 
 /* Timer */
 HWTimer timer;
 
+/**
+ * @brief Arduino setup() function. Runs one.
+ */
 void setup() {
   pinMode(pinA, INPUT);
   pinMode(pinB, INPUT);
@@ -53,6 +58,9 @@ void setup() {
   Serial.println(ack);
 }
 
+/**
+ * @brief Arduino loop() function. Runs constantly.
+ */
 void loop() {
   if (Serial.available()) {
     String input = Serial.readStringUntil('\n');
@@ -62,6 +70,12 @@ void loop() {
   }
 }
 
+/**
+ * @brief Print message on Serial only if DEBUG is enabled.
+ *
+ * @param fmt message.
+ * @param ... additional parameters.
+ */
 void debugPrintf(const char* fmt, ...) {
   const uint8_t buff_size = 255;
 
@@ -76,10 +90,49 @@ void debugPrintf(const char* fmt, ...) {
   }
 }
 
+/**
+ * @brief Converts parameter string to enum value.
+ *
+ * @param paramStr  parameter string.
+ * @return          enum value of the parameter.
+ */
+Param strToParam(const String& paramStr) {
+  debugPrintf("param: %s\n", paramStr.c_str());
+  if (paramStr.equalsIgnoreCase("temp"))
+    return PARAM_TEMP;
+  if (paramStr.equalsIgnoreCase("time"))
+    return PARAM_TIME;
+  if (paramStr.equalsIgnoreCase("status"))
+    return PARAM_STATUS;
+  return PARAM_UNKNOWN;
+}
+
+/**
+ * @brief Converts mode string to enum value.
+ *
+ * @param modeStr mode string.
+ * @return        enum value of the mode.
+ */
+Mode strToMode(const String& modeStr) {
+  debugPrintf("mode: %s\n", modeStr.c_str());
+  if (modeStr.equalsIgnoreCase("get"))
+    return MODE_GET;
+  if (modeStr.equalsIgnoreCase("set"))
+    return MODE_SET;
+  if (modeStr.equalsIgnoreCase("help"))
+    return MODE_HELP;
+  return MODE_UNKNOWN;
+}
+
+/**
+ * @brief Handles input from Serial.
+ *
+ * @param input input string.
+ */
 void inputHandler(const String& input) {
   int sepIndex = 0;
   String mode, param, value;
-  
+
   sepIndex = input.indexOf(' ');
   mode = input.substring(0, sepIndex);
   param = input.substring(++sepIndex);
@@ -103,6 +156,11 @@ void inputHandler(const String& input) {
   }
 }
 
+/**
+ * @brief Handles operations in "get" mode.
+ *
+ * @param paramStr parameter string.
+ */
 void modeGetHandler(const String& paramStr) {
   switch (strToParam(paramStr)) {
     case PARAM_TEMP:
@@ -120,16 +178,22 @@ void modeGetHandler(const String& paramStr) {
   }
 }
 
-void modeSetHandler(const String& paramStr, const String& value) {
+/**
+ * @brief Handles operations in "set" mode.
+ *
+ * @param paramStr  parameter string.
+ * @param valueStr  parameter value.
+ */
+void modeSetHandler(const String& paramStr, const String& valueStr) {
   switch (strToParam(paramStr)) {
     case PARAM_TEMP:
-      setTemp(value);
+      setTemp(valueStr);
       break;
     case PARAM_TIME:
-      setTime(value);
+      setTime(valueStr);
       break;
     case PARAM_STATUS:
-      setStatus(value);
+      setStatus(valueStr);
       break;
     case PARAM_UNKNOWN:
       Serial.printf("%s:\"%s\" is not a valid param.\n", ackErr.c_str(), paramStr.c_str());
@@ -137,6 +201,11 @@ void modeSetHandler(const String& paramStr, const String& value) {
   }
 }
 
+/**
+ * @brief Set up target temperature and apply immediately if already running.
+ *
+ * @param tempStr temperature string, will be parsed to integer.
+ */
 void setTemp(const String& tempStr) {
   uint8_t temp = (uint8_t) tempStr.toInt();
 
@@ -159,42 +228,52 @@ void setTemp(const String& tempStr) {
   Serial.println(ack);
 }
 
-void setTime(const String& hourStr) {
-  uint8_t hour = (uint8_t) hourStr.toInt();
+/**
+ * @brief Set up target time and apply immediately if already running.
+ *
+ * @param timeStr time string, will be parsed to integer.
+ */
+void setTime(const String& timeStr) {
+  uint8_t time = (uint8_t) timeStr.toInt();
 
   debugPrintf("Setting up the time.\n");
 
-  if (hour < 0 || hour > maxHours) {
-    Serial.printf("%s:Allowed values range from %d to %d.\n", ackErr.c_str(), 0, maxHours);
+  if (time < 0 || time > maxTime) {
+    Serial.printf("%s:Allowed values range from %d to %d.\n", ackErr.c_str(), 0, maxTime);
     return;
   }
 
-  hoursToSet = hour;
+  timeToSet = time;
 
-  debugPrintf("Hours to set: %d\n", hoursToSet);
+  debugPrintf("Time to set: %dh\n", timeToSet);
 
   if (statusRunning) {
-    debugPrintf("Changing time to: %d\n", tempToSet);
-    dial(PARAM_TIME, hoursToSet);
+    debugPrintf("Changing time to: %dh\n", tempToSet);
+    dial(PARAM_TIME, timeToSet);
   }
 
   Serial.println(ack);
 }
 
+/**
+ * @brief Set the status. Start or stop the job.
+ *
+ * @param statusStr status string, either "start" or "stop".
+ */
 void setStatus(const String& statusStr) {
   if (statusStr.equalsIgnoreCase("start")) {
-    if (!hoursToSet) {
+    if (!timeToSet) {
       Serial.printf("%s:Cannot start, time not set.\n", ackErr.c_str());
       return;
     }
 
     dial(PARAM_TEMP, tempToSet);
-    dial(PARAM_TIME, hoursToSet);
+    dial(PARAM_TIME, timeToSet);
 
-    timer.start(hoursToSet, resetStatus);
+    timer.start(timeToSet, resetStatus);
 
     statusRunning = true;
-    
+
     debugPrintf("Started!\n");
     Serial.println(ack);
 
@@ -206,21 +285,30 @@ void setStatus(const String& statusStr) {
     timer.stop();
 
     statusRunning = false;
-    
+
     debugPrintf("Stopped!\n");
     Serial.println(ack);
 
     return;
   }
-  
+
   Serial.printf("%s:\"%s\" is not a valid status.\n", ackErr.c_str(), statusStr.c_str());
   return;
 }
 
+/**
+ * @brief A callback function for timer, reset status do "stopped".
+ */
 void resetStatus() {
   statusRunning = false;
 }
 
+/**
+ * @brief Sets up target values by emulating encoder movement. Dials in the settings.
+ *
+ * @param param parameter to set, either temperature or time.
+ * @param value value to set to.
+ */
 void dial(Param param, uint8_t value) {
   uint8_t settingSteps;
   uint8_t minValue, maxValue;
@@ -235,7 +323,7 @@ void dial(Param param, uint8_t value) {
     case PARAM_TIME:
       settingSteps = 2;
       minValue = 0;
-      maxValue = maxHours;
+      maxValue = maxTime;
       debugPrintf("Dialing in time.\n");
       break;
     default:
@@ -249,7 +337,7 @@ void dial(Param param, uint8_t value) {
     rotateLeft();
     delay(1);
   }
-  
+
   // Confirm
   pressButton();
   delay(1);
@@ -271,28 +359,9 @@ void dial(Param param, uint8_t value) {
   delay(1);
 }
 
-Param strToParam(const String& input) {
-  debugPrintf("param: %s\n", input.c_str());
-  if (input.equalsIgnoreCase("temp"))
-    return PARAM_TEMP;
-  if (input.equalsIgnoreCase("time"))
-    return PARAM_TIME;
-  if (input.equalsIgnoreCase("status"))
-    return PARAM_STATUS;
-  return PARAM_UNKNOWN;
-}
-
-Mode strToMode(const String& input) {
-  debugPrintf("mode: %s\n", input.c_str());
-  if (input.equalsIgnoreCase("get"))
-    return MODE_GET;
-  if (input.equalsIgnoreCase("set"))
-    return MODE_SET;
-  if (input.equalsIgnoreCase("help"))
-    return MODE_HELP;
-  return MODE_UNKNOWN;
-}
-
+/**
+ * @brief Emulates encoder single step to the right.
+ */
 void rotateRight() {
   pinMode(pinA, OUTPUT);
   pinMode(pinB, OUTPUT);
@@ -309,6 +378,9 @@ void rotateRight() {
   pinMode(pinB, INPUT);
 }
 
+/**
+ * @brief Emulates encoder single step to the left.
+ */
 void rotateLeft() {
   pinMode(pinA, OUTPUT);
   pinMode(pinB, OUTPUT);
@@ -325,15 +397,24 @@ void rotateLeft() {
   pinMode(pinB, INPUT);
 }
 
-void setPins(int a, int b) {
-  digitalWrite(pinA, a);
-  digitalWrite(pinB, b);
-}
-
+/**
+ * @brief Emulates encoder button press.
+ */
 void pressButton() {
   pinMode(pinSW, OUTPUT);
   digitalWrite(pinSW, HIGH);
   delay(50);
 
   pinMode(pinSW, INPUT);
+}
+
+/**
+ * @brief Set the encoder pins direction.
+ *
+ * @param a encoder pin A.
+ * @param b encoder pin B.
+ */
+void setPins(int a, int b) {
+  digitalWrite(pinA, a);
+  digitalWrite(pinB, b);
 }
