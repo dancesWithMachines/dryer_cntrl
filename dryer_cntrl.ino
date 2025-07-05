@@ -50,7 +50,7 @@ void loop() {
   if (Serial.available()) {
     String input = Serial.readStringUntil('\n');
     input.trim();
-    debugPrintf("Received input:%s\n", input.c_str());
+    debugPrintf("Received input: %s\n", input.c_str());
     inputHandler(input);
   }
 }
@@ -88,7 +88,7 @@ void inputHandler(const String& input) {
       modeSetHandler(param, value);
       break;
     case MODE_UNKNOWN:
-      Serial.printf("%s:Invalid mode: %s", ackErr.c_str(), input.c_str());
+      Serial.printf("%s:\"%s\" is not a valid mode.\n", ackErr.c_str(), input.c_str());
     case MODE_HELP:
       printHelp();
       break;
@@ -107,7 +107,7 @@ void modeGetHandler(const String& paramStr) {
       Serial.printf("%s:%s\n", ack.c_str(), statusRunning ? "running" : "stopped");
       break;
     case PARAM_UNKNOWN:
-      Serial.printf("%s:Invalid param: %s\n", ackErr.c_str(), paramStr.c_str());
+      Serial.printf("%s:\"%s\" is not a valid param.\n", ackErr.c_str(), paramStr.c_str());
       break;
   }
 }
@@ -124,7 +124,7 @@ void modeSetHandler(const String& paramStr, const String& value) {
       setStatus(value);
       break;
     case PARAM_UNKNOWN:
-      Serial.printf("%s:Invalid param: %s\n", ackErr.c_str(), paramStr.c_str());
+      Serial.printf("%s:\"%s\" is not a valid param.\n", ackErr.c_str(), paramStr.c_str());
       break;
   }
 }
@@ -132,17 +132,17 @@ void modeSetHandler(const String& paramStr, const String& value) {
 void setTemp(const String& tempStr) {
   uint8_t temp = (uint8_t) tempStr.toInt();
 
-  debugPrintf("Setting up the temperature\n");
+  debugPrintf("Setting up the temperature.\n");
 
   if (temp < minTemp || temp > maxTemp) {
-    Serial.printf("%s: Allowed values range from %d to %d.", ackErr.c_str(), minTemp, maxTemp);
+    Serial.printf("%s:Allowed values range from %d to %d.\n", ackErr.c_str(), minTemp, maxTemp);
     return;
   }
 
   tempToSet = temp;
 
   if (statusRunning) {
-    debugPrintf("Changing temperature to %d\n", tempToSet);
+    debugPrintf("Changing temperature to: %d\n", tempToSet);
     dial(PARAM_TEMP, tempToSet);
     return;
   }
@@ -154,10 +154,10 @@ void setTemp(const String& tempStr) {
 void setTime(const String& hourStr) {
   uint8_t hour = (uint8_t) hourStr.toInt();
 
-  debugPrintf("Setting up the time\n");
+  debugPrintf("Setting up the time.\n");
 
   if (hour < 0 || hour > maxHours) {
-    Serial.printf("%s: Allowed values range from %d to %d.\n", ackErr.c_str(), 0, maxHours);
+    Serial.printf("%s:Allowed values range from %d to %d.\n", ackErr.c_str(), 0, maxHours);
     return;
   }
 
@@ -166,7 +166,7 @@ void setTime(const String& hourStr) {
   debugPrintf("Hours to set: %d\n", hoursToSet);
 
   if (statusRunning) {
-    debugPrintf("Changing time to %d\n", tempToSet);
+    debugPrintf("Changing time to: %d\n", tempToSet);
     dial(PARAM_TIME, hoursToSet);
   }
 
@@ -201,7 +201,7 @@ void setStatus(const String& statusStr) {
     return;
   }
   
-  Serial.printf("%s:\"%s\" is not a valid status.", ackErr.c_str(), statusStr.c_str());
+  Serial.printf("%s:\"%s\" is not a valid status.\n", ackErr.c_str(), statusStr.c_str());
   return;
 }
 
@@ -262,11 +262,11 @@ void printUnsupportedMessage(Mode mode, const String& paramStr) {
   else
    modeStr = "get";
 
-  Serial.printf("%s:%s is currently unsupported in \"%s\" mode.", ackErr.c_str(), paramStr.c_str(), modeStr.c_str());
+  Serial.printf("%s:\"%s\" is currently unsupported in \"%s\" mode.\n", ackErr.c_str(), paramStr.c_str(), modeStr.c_str());
 }
 
 Param strToParam(const String& input) {
-  debugPrintf("param:%s\n", input.c_str());
+  debugPrintf("param: %s\n", input.c_str());
   if (input.equalsIgnoreCase("temp"))
     return PARAM_TEMP;
   if (input.equalsIgnoreCase("time"))
@@ -277,7 +277,7 @@ Param strToParam(const String& input) {
 }
 
 Mode strToMode(const String& input) {
-  debugPrintf("mode:%s\n", input.c_str());
+  debugPrintf("mode: %s\n", input.c_str());
   if (input.equalsIgnoreCase("get"))
     return MODE_GET;
   if (input.equalsIgnoreCase("set"))
