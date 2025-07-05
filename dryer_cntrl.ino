@@ -1,4 +1,5 @@
 #include "HWTimer.h"
+#include "help.h"
 
 #define NAME "Filament Dryer Automator"
 #define VERSION "0.0.0"
@@ -49,6 +50,7 @@ void setup() {
   delay(1000);
 
   printHelp();
+  Serial.println(ack);
 }
 
 void loop() {
@@ -96,6 +98,7 @@ void inputHandler(const String& input) {
       Serial.printf("%s:\"%s\" is not a valid mode.\n", ackErr.c_str(), input.c_str());
     case MODE_HELP:
       printHelp();
+      Serial.println(ack);
       break;
   }
 }
@@ -333,32 +336,4 @@ void pressButton() {
   delay(50);
 
   pinMode(pinSW, INPUT);
-}
-
-void printHelp() {
-  
-  const char * logo = "             __--^^|\n"
-                      "       __--^^      |\n"
-                      " __--^^      __--^^ \n"
-                      "|           | .--^^|\n"
-                      "|__--^^|    | |    |\n"
-                      ".--^^| |    | |    |\n"
-                      "|    | |    | |    |\n"
-                      "|    | |    | |    |\n"
-                      "|    | |    | |    |\n"
-                      "|    | |    | |__--^\n"
-                      "|    | |__--^\n"
-                      "|__--^";
-
-  const char * author = "Mateusz Kusiak (Timax)\n"
-                        " @dancesWithMachines";
-
-  static bool boot = true;
-
-  if (boot) {
-    Serial.printf("%s %s\n\n%s\n\n%s\n", NAME, VERSION, logo, author);
-    boot = false;
-  }
-
-
 }
