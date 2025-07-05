@@ -1,3 +1,5 @@
+#include "HWTimer.h"
+
 #define NAME "Filament Dryer Automator"
 #define VERSION "0.0.0"
 #define DEBUG true
@@ -34,6 +36,9 @@ const uint8_t maxHours = 24;
 static bool statusRunning = false;
 static uint8_t tempToSet = 0;
 static uint8_t hoursToSet = 0;
+
+/* Timer */
+HWTimer timer;
 
 void setup() {
   pinMode(pinA, INPUT);
@@ -101,7 +106,7 @@ void modeGetHandler(const String& paramStr) {
       Serial.printf("%s:%2.1f\n", ack.c_str(), analogReadTemp());
       break;
     case PARAM_TIME:
-      printUnsupportedMessage(MODE_GET, paramStr);
+      Serial.printf("%s:%s\n", ack.c_str(), timer.getTimeLeft().c_str());
       break;
     case PARAM_STATUS:
       Serial.printf("%s:%s\n", ack.c_str(), statusRunning ? "running" : "stopped");
@@ -183,6 +188,8 @@ void setStatus(const String& statusStr) {
     dial(PARAM_TEMP, tempToSet);
     dial(PARAM_TIME, hoursToSet);
 
+    timer.start(hoursToSet, resetStatus);
+
     statusRunning = true;
     
     debugPrintf("Started!\n");
@@ -192,6 +199,8 @@ void setStatus(const String& statusStr) {
   }
   if (statusStr.equalsIgnoreCase("stop")) {
     dial(PARAM_TIME, 0);
+
+    timer.stop();
 
     statusRunning = false;
     
@@ -203,6 +212,10 @@ void setStatus(const String& statusStr) {
   
   Serial.printf("%s:\"%s\" is not a valid status.\n", ackErr.c_str(), statusStr.c_str());
   return;
+}
+
+void resetStatus() {
+  statusRunning = false;
 }
 
 void dial(Param param, uint8_t value) {
@@ -253,16 +266,6 @@ void dial(Param param, uint8_t value) {
   // Confirm settings
   pressButton();
   delay(1);
-}
-
-void printUnsupportedMessage(Mode mode, const String& paramStr) {
-  String modeStr;
-  if (mode == MODE_GET)
-    modeStr = "set";
-  else
-   modeStr = "get";
-
-  Serial.printf("%s:\"%s\" is currently unsupported in \"%s\" mode.\n", ackErr.c_str(), paramStr.c_str(), modeStr.c_str());
 }
 
 Param strToParam(const String& input) {
@@ -325,7 +328,6 @@ void setPins(int a, int b) {
 }
 
 void pressButton() {
-
   pinMode(pinSW, OUTPUT);
   digitalWrite(pinSW, HIGH);
   delay(50);
