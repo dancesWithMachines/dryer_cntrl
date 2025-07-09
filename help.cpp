@@ -30,19 +30,19 @@ const char * params = "Parameters:\r\n"
                       "* time:\r\n"
                       "  * [get MODE] Get estimated time till finish. Counts time using RP2040 hardware timer.\r\n"
                       "  * [set MODE] Set target time. Allowed values 0-24. Unit is hours.\r\n"
-                      "* status:\r\n"
+                      "* state:\r\n"
                       "  * [get MODE] Check if job is currently running. Returns either \"running\" or \"stopped\".\r\n"
                       "  * [set MODE] \"start\" starts the job, \"stop\" stops the job.";
 
 const char * flow = "Flow:\r\n"
                     "1. Set up temperature and time.\r\n"
-                    "2. Set status to \"start\" to start the job.\r\n"
+                    "2. Set state to \"start\" to start the job.\r\n"
                     "Notes:\r\n"
                     "Once the job is running, the settings are applied live.\r\n"
-                    "You can stop the job by setting status to \"stop\", this does not reset set up values.";
+                    "You can stop the job by setting state to \"stop\", this does not reset set up values.";
 
 const char * responses = "Responses:\r\n"
-                         "* Responses follow <status> or <status>:<value> format.\r\n"
+                         "* Responses follow <state> or <state>:<value> format.\r\n"
                          "* Status is either \"OK\" on success or \"ERR\" on failure.\r\n"
                          "* If function provides any feedback, it will be printed after \":\".";
 

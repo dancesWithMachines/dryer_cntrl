@@ -17,7 +17,7 @@ enum Mode {
 enum Param {
   PARAM_TEMP,
   PARAM_TIME,
-  PARAM_STATUS,
+  PARAM_STATE,
   PARAM_UNKNOWN
 };
 
@@ -36,7 +36,7 @@ const uint8_t maxTemp = 65; // Degrees Celsius
 const uint8_t maxTime = 24; // Hours
 
 /* Global params */
-static bool statusRunning = false;
+static bool stateRunning = false;
 static uint8_t tempToSet = 0;
 static uint8_t timeToSet = 0;
 
@@ -128,8 +128,8 @@ Param strToParam(const String& paramStr) {
     return PARAM_TEMP;
   if (paramStr.equalsIgnoreCase("time"))
     return PARAM_TIME;
-  if (paramStr.equalsIgnoreCase("status"))
-    return PARAM_STATUS;
+  if (paramStr.equalsIgnoreCase("state"))
+    return PARAM_STATE;
   return PARAM_UNKNOWN;
 }
 
@@ -200,8 +200,8 @@ void modeGetHandler(const String& paramStr) {
     case PARAM_TIME:
       Serial.printf("%s:%s\r\n", ack.c_str(), timer.getTimeLeft().c_str());
       break;
-    case PARAM_STATUS:
-      Serial.printf("%s:%s\r\n", ack.c_str(), statusRunning ? "running" : "stopped");
+    case PARAM_STATE:
+      Serial.printf("%s:%s\r\n", ack.c_str(), stateRunning ? "running" : "stopped");
       break;
     case PARAM_UNKNOWN:
       Serial.printf("%s:\"%s\" is not a valid param.\r\n", ackErr.c_str(), paramStr.c_str());
@@ -223,7 +223,7 @@ void modeSetHandler(const String& paramStr, const String& valueStr) {
     case PARAM_TIME:
       setTime(valueStr);
       break;
-    case PARAM_STATUS:
+    case PARAM_STATE:
       setStatus(valueStr);
       break;
     case PARAM_UNKNOWN:
@@ -249,7 +249,7 @@ void setTemp(const String& tempStr) {
 
   tempToSet = temp;
 
-  if (statusRunning) {
+  if (stateRunning) {
     debugPrintf("Changing temperature to: %d\r\n", tempToSet);
     dial(PARAM_TEMP, tempToSet);
     return;
@@ -278,7 +278,7 @@ void setTime(const String& timeStr) {
 
   debugPrintf("Time to set: %dh\r\n", timeToSet);
 
-  if (statusRunning) {
+  if (stateRunning) {
     debugPrintf("Changing time to: %dh\r\n", tempToSet);
     dial(PARAM_TIME, timeToSet);
   }
@@ -287,12 +287,12 @@ void setTime(const String& timeStr) {
 }
 
 /**
- * @brief Set the status. Start or stop the job.
+ * @brief Set the state. Start or stop the job.
  *
- * @param statusStr status string, either "start" or "stop".
+ * @param stateStr state string, either "start" or "stop".
  */
-void setStatus(const String& statusStr) {
-  if (statusStr.equalsIgnoreCase("start")) {
+void setStatus(const String& stateStr) {
+  if (stateStr.equalsIgnoreCase("start")) {
     if (!timeToSet) {
       Serial.printf("%s:Cannot start, time not set.\r\n", ackErr.c_str());
       return;
@@ -303,19 +303,19 @@ void setStatus(const String& statusStr) {
 
     timer.start(timeToSet, resetStatus);
 
-    statusRunning = true;
+    stateRunning = true;
 
     debugPrintf("Started!\r\n");
     Serial.println(ack);
 
     return;
   }
-  if (statusStr.equalsIgnoreCase("stop")) {
+  if (stateStr.equalsIgnoreCase("stop")) {
     dial(PARAM_TIME, 0);
 
     timer.stop();
 
-    statusRunning = false;
+    stateRunning = false;
 
     debugPrintf("Stopped!\r\n");
     Serial.println(ack);
@@ -323,15 +323,15 @@ void setStatus(const String& statusStr) {
     return;
   }
 
-  Serial.printf("%s:\"%s\" is not a valid status.\r\n", ackErr.c_str(), statusStr.c_str());
+  Serial.printf("%s:\"%s\" is not a valid state.\r\n", ackErr.c_str(), stateStr.c_str());
   return;
 }
 
 /**
- * @brief A callback function for timer, reset status do "stopped".
+ * @brief A callback function for timer, reset state do "stopped".
  */
 void resetStatus() {
-  statusRunning = false;
+  stateRunning = false;
 }
 
 /**
