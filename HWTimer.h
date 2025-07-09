@@ -19,7 +19,6 @@ class HWTimer {
     alarm_id_t alarmId = -1;
     uint64_t elapsedMs = 0;
     uint64_t targetMs = 0;
-    
 
     static int64_t alarm_callback(alarm_id_t id, void *user_data);
 };
