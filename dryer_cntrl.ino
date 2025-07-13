@@ -2,7 +2,7 @@
 #include "help.h"
 
 #define NAME "Filament Dryer Automator"
-#define VERSION "0.0.0"
+#define VERSION "0.0.1"
 #define DEBUG false
 
 /* Available modes */
