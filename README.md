@@ -15,6 +15,11 @@ automated if needed.
 The solution has its purpose in remote 3D printer setup, to provide hands-free operation of the
 dryer.
 
+## Blog post
+
+Learn about how this project came to be from
+[this blog post](https://danceswithmachines.github.io/posts/handsfree-controling-creality-drybox-20/).
+
 ## Components needed
 
 For the modification you'll need following components:
